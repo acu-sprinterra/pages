@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piano Note Quiz</title>
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --border: #e5e7eb;
+    --correct: #16a34a;
+    --wrong: #dc2626;
+    --highlight: #2563eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 16px;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 24px; }
+  h1 { margin: 0 0 6px; font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
+  header p { margin: 0; color: var(--muted); font-size: 14px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .scoreboard {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 24px;
+    gap: 12px;
+  }
+  .stat {
+    flex: 1;
+    background: #f1f5f9;
+    padding: 14px;
+    border-radius: 8px;
+    text-align: center;
+  }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-value { font-size: 26px; font-weight: 600; margin-top: 2px; }
+  .piano-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 12px 0 28px;
+    overflow-x: auto;
+  }
+  svg.piano { display: block; }
+  .answers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .answer {
+    background: white;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 14px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .answer:hover:not(:disabled) { border-color: var(--accent); background: #eff6ff; }
+  .answer.correct { background: var(--correct); border-color: var(--correct); color: white; }
+  .answer.wrong { background: var(--wrong); border-color: var(--wrong); color: white; }
+  .answer:disabled { cursor: default; opacity: 0.85; }
+  .feedback {
+    text-align: center;
+    min-height: 24px;
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .feedback.correct { color: var(--correct); font-weight: 500; }
+  .feedback.wrong { color: var(--wrong); font-weight: 500; }
+  .actions { display: flex; justify-content: center; gap: 10px; }
+  .btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--accent-hover); }
+  .btn-secondary {
+    background: white;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: #f1f5f9; border-color: var(--accent); }
+  .options {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .options label { cursor: pointer; user-select: none; }
+  .options input { margin-right: 4px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Piano Note Quiz</h1>
+    <p>Identify the highlighted key</p>
+  </header>
+
+  <div class="card">
+    <div class="scoreboard">
+      <div class="stat">
+        <div class="stat-label">Correct</div>
+        <div class="stat-value" id="correct">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Total</div>
+        <div class="stat-value" id="total">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Accuracy</div>
+        <div class="stat-value" id="accuracy">–</div>
+      </div>
+    </div>
+
+    <div class="options">
+      <label><input type="checkbox" id="opt-sharps" checked> Include sharps/flats</label>
+    </div>
+
+    <div class="piano-wrap">
+      <svg class="piano" id="piano" viewBox="0 0 700 220" width="700" height="220"></svg>
+    </div>
+
+    <div id="answers" class="answers"></div>
+
+    <div class="feedback" id="feedback">Click an answer below.</div>
+
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="Quiz.reset()">Reset Score</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const Quiz = (() => {
+  // Two octaves: C4 to B5
+  const WHITE = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  const BLACK_AFTER = { C: true, D: true, F: true, G: true, A: true }; // white keys followed by a black key
+  const SHARP_NAMES = { 'C#': 'C# / D♭', 'D#': 'D# / E♭', 'F#': 'F# / G♭', 'G#': 'G# / A♭', 'A#': 'A# / B♭' };
+  const ALL_NATURAL = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  const ALL_SHARPS = ['C#', 'D#', 'F#', 'G#', 'A#'];
+
+  const piano = document.getElementById('piano');
+  const answersEl = document.getElementById('answers');
+  const feedbackEl = document.getElementById('feedback');
+  const correctEl = document.getElementById('correct');
+  const totalEl = document.getElementById('total');
+  const accuracyEl = document.getElementById('accuracy');
+  const sharpsToggle = document.getElementById('opt-sharps');
+
+  const WHITE_W = 50, WHITE_H = 200;
+  const BLACK_W = 32, BLACK_H = 125;
+  const OCTAVES = 2; // C4..B5
+
+  let score = 0, total = 0, currentNote = null, locked = false;
+
+  function buildKeyboard() {
+    piano.innerHTML = '';
+    const keys = [];
+    let x = 0;
+    for (let o = 0; o < OCTAVES; o++) {
+      for (const w of WHITE) {
+        keys.push({ type: 'white', note: w, octave: o + 4, x });
+        x += WHITE_W;
+      }
+    }
+    // white keys first
+    keys.forEach(k => {
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', k.x);
+      rect.setAttribute('y', 0);
+      rect.setAttribute('width', WHITE_W);
+      rect.setAttribute('height', WHITE_H);
+      rect.setAttribute('fill', 'white');
+      rect.setAttribute('stroke', '#94a3b8');
+      rect.setAttribute('stroke-width', 1);
+      rect.dataset.note = k.note;
+      rect.dataset.octave = k.octave;
+      rect.dataset.type = 'white';
+      piano.appendChild(rect);
+      // octave label on C
+      if (k.note === 'C') {
+        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        t.setAttribute('x', k.x + WHITE_W / 2);
+        t.setAttribute('y', WHITE_H - 12);
+        t.setAttribute('text-anchor', 'middle');
+        t.setAttribute('fill', '#cbd5e1');
+        t.setAttribute('font-size', '11');
+        t.textContent = 'C' + k.octave;
+        piano.appendChild(t);
+      }
+    });
+    // black keys
+    keys.forEach(k => {
+      if (BLACK_AFTER[k.note]) {
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        const bx = k.x + WHITE_W - BLACK_W / 2;
+        rect.setAttribute('x', bx);
+        rect.setAttribute('y', 0);
+        rect.setAttribute('width', BLACK_W);
+        rect.setAttribute('height', BLACK_H);
+        rect.setAttribute('fill', '#0f172a');
+        rect.setAttribute('rx', 2);
+        rect.dataset.note = k.note + '#';
+        rect.dataset.octave = k.octave;
+        rect.dataset.type = 'black';
+        piano.appendChild(rect);
+      }
+    });
+  }
+
+  function highlight(note, octave) {
+    [...piano.querySelectorAll('rect')].forEach(r => {
+      const isMatch = r.dataset.note === note && r.dataset.octave == octave;
+      if (isMatch) {
+        r.setAttribute('fill', 'var(--highlight)');
+      } else {
+        r.setAttribute('fill', r.dataset.type === 'white' ? 'white' : '#0f172a');
+      }
+    });
+  }
+
+  function pickNote() {
+    const includeSharps = sharpsToggle.checked;
+    const pool = includeSharps ? [...ALL_NATURAL, ...ALL_SHARPS] : [...ALL_NATURAL];
+    const note = pool[Math.floor(Math.random() * pool.length)];
+    const octave = 4 + Math.floor(Math.random() * OCTAVES);
+    return { note, octave };
+  }
+
+  function buildAnswers() {
+    answersEl.innerHTML = '';
+    const includeSharps = sharpsToggle.checked;
+    const labels = includeSharps
+      ? [...ALL_NATURAL, ...ALL_SHARPS]
+      : [...ALL_NATURAL];
+    labels.forEach(n => {
+      const btn = document.createElement('button');
+      btn.className = 'answer';
+      btn.textContent = n.includes('#') ? SHARP_NAMES[n] : n;
+      btn.dataset.note = n;
+      btn.addEventListener('click', () => answer(n, btn));
+      answersEl.appendChild(btn);
+    });
+  }
+
+  function answer(chosen, btn) {
+    if (locked) return;
+    locked = true;
+    total++;
+    const isRight = chosen === currentNote.note;
+    if (isRight) {
+      score++;
+      btn.classList.add('correct');
+      feedbackEl.textContent = 'Correct.';
+      feedbackEl.className = 'feedback correct';
+    } else {
+      btn.classList.add('wrong');
+      const rightBtn = answersEl.querySelector(`[data-note="${currentNote.note}"]`);
+      if (rightBtn) rightBtn.classList.add('correct');
+      feedbackEl.textContent = `Wrong. That was ${currentNote.note.includes('#') ? SHARP_NAMES[currentNote.note] : currentNote.note}.`;
+      feedbackEl.className = 'feedback wrong';
+    }
+    [...answersEl.querySelectorAll('.answer')].forEach(b => b.disabled = true);
+    updateScore();
+    setTimeout(nextQuestion, 1200);
+  }
+
+  function nextQuestion() {
+    locked = false;
+    [...answersEl.querySelectorAll('.answer')].forEach(b => {
+      b.disabled = false;
+      b.classList.remove('correct', 'wrong');
+    });
+    currentNote = pickNote();
+    highlight(currentNote.note, currentNote.octave);
+    feedbackEl.textContent = 'Which note is highlighted?';
+    feedbackEl.className = 'feedback';
+  }
+
+  function updateScore() {
+    correctEl.textContent = score;
+    totalEl.textContent = total;
+    accuracyEl.textContent = total === 0 ? '–' : Math.round(100 * score / total) + '%';
+  }
+
+  function reset() {
+    score = 0; total = 0;
+    updateScore();
+    buildAnswers();
+    nextQuestion();
+  }
+
+  sharpsToggle.addEventListener('change', () => {
+    buildAnswers();
+    nextQuestion();
+  });
+
+  buildKeyboard();
+  buildAnswers();
+  nextQuestion();
+
+  return { reset };
+})();
+</script>
+</body>
+</html>
