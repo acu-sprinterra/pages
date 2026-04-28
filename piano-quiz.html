@@ -156,6 +156,7 @@
     <div class="feedback" id="feedback">Click an answer below.</div>
 
     <div class="actions">
+      <button class="btn" id="start-btn" onclick="Quiz.start()">Start Quiz</button>
       <button class="btn btn-secondary" onclick="Quiz.reset()">Reset Score</button>
     </div>
   </div>
@@ -243,7 +244,7 @@ const Quiz = (() => {
     [...piano.querySelectorAll('rect')].forEach(r => {
       const isMatch = r.dataset.note === note && r.dataset.octave == octave;
       if (isMatch) {
-        r.setAttribute('fill', 'var(--highlight)');
+        r.setAttribute('fill', '#2563eb');
       } else {
         r.setAttribute('fill', r.dataset.type === 'white' ? 'white' : '#0f172a');
       }
@@ -318,19 +319,26 @@ const Quiz = (() => {
     score = 0; total = 0;
     updateScore();
     buildAnswers();
+    if (started) nextQuestion();
+  }
+
+  let started = false;
+  function start() {
+    started = true;
+    document.getElementById('start-btn').textContent = 'Skip Question';
     nextQuestion();
   }
 
   sharpsToggle.addEventListener('change', () => {
     buildAnswers();
-    nextQuestion();
+    if (started) nextQuestion();
   });
 
   buildKeyboard();
   buildAnswers();
-  nextQuestion();
+  feedbackEl.textContent = 'Press Start Quiz to begin.';
 
-  return { reset };
+  return { reset, start };
 })();
 </script>
 </body>
