@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<title>Inside Sprinterra</title>
+<style>
+  :root {
+    --navy: #19277D;
+    --sky: #38AAF1;
+    --green: #19B929;
+    --charcoal: #26273D;
+    --offwhite: #F0F1F9;
+    --gold: #D4AF37;
+    --gold-light: #F5E5A0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--offwhite);
+    color: var(--charcoal);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  .accent-strip {
+    height: 6px;
+    background: linear-gradient(90deg, var(--navy) 0%, var(--sky) 50%, var(--green) 100%);
+  }
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  header {
+    margin-bottom: 32px;
+  }
+  h1 {
+    color: var(--navy);
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .subtitle {
+    color: var(--charcoal);
+    opacity: 0.7;
+    margin-top: 4px;
+    font-size: 15px;
+  }
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 2px 12px rgba(38, 39, 61, 0.06);
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    color: var(--navy);
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+  .card h3 {
+    color: var(--navy);
+    font-size: 16px;
+    margin-bottom: 10px;
+    margin-top: 18px;
+  }
+  .card p { margin-bottom: 10px; }
+  .card ul { margin-left: 20px; margin-bottom: 10px; }
+  .card li { margin-bottom: 6px; }
+
+  .name-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #e0e2ee;
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: inherit;
+    margin: 12px 0;
+    transition: border-color 0.15s;
+  }
+  .name-input:focus {
+    outline: none;
+    border-color: var(--sky);
+  }
+  button {
+    background: var(--navy);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.15s, transform 0.05s;
+  }
+  button:hover { opacity: 0.92; }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.secondary {
+    background: white;
+    color: var(--navy);
+    border: 2px solid var(--navy);
+  }
+
+  .day-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .day-tab {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 14px;
+    background: white;
+    border: 2px solid #e0e2ee;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    font-weight: 600;
+    color: var(--charcoal);
+  }
+  .day-tab.active {
+    border-color: var(--navy);
+    background: var(--navy);
+    color: white;
+  }
+  .day-tab.locked {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .day-tab.completed::after {
+    content: " ✓";
+    color: var(--green);
+    font-weight: 700;
+  }
+  .day-tab.active.completed::after {
+    color: var(--gold-light);
+  }
+
+  .question-card {
+    background: white;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 2px 12px rgba(38, 39, 61, 0.06);
+    margin-bottom: 16px;
+    border-left: 4px solid var(--sky);
+  }
+  .question-card.friday-magic {
+    border-left: 4px solid var(--gold);
+    background: linear-gradient(135deg, #fffdf5 0%, white 60%);
+    box-shadow: 0 2px 16px rgba(212, 175, 55, 0.18);
+  }
+  .question-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    font-size: 13px;
+    color: var(--charcoal);
+    opacity: 0.7;
+  }
+  .question-card.friday-magic .question-meta {
+    color: #8B6914;
+    opacity: 1;
+    font-weight: 600;
+  }
+  .points-badge {
+    background: var(--sky);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .question-card.friday-magic .points-badge {
+    background: var(--gold);
+    color: white;
+  }
+  .friday-magic-banner {
+    text-align: center;
+    margin-bottom: 14px;
+    font-size: 14px;
+    color: #8B6914;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .question-text {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--charcoal);
+    margin-bottom: 16px;
+    line-height: 1.4;
+  }
+  .options { display: flex; flex-direction: column; gap: 8px; }
+  .option {
+    padding: 14px 16px;
+    background: var(--offwhite);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 15px;
+    text-align: left;
+    line-height: 1.4;
+  }
+  .option:hover:not(.disabled) {
+    border-color: var(--sky);
+    background: white;
+  }
+  .option.selected {
+    border-color: var(--navy);
+    background: white;
+  }
+  .option.correct {
+    border-color: var(--green);
+    background: #e8f8ea;
+  }
+  .option.incorrect {
+    border-color: #c93838;
+    background: #fbeaea;
+  }
+  .option.disabled { cursor: default; }
+  .option-letter {
+    font-weight: 700;
+    color: var(--navy);
+    margin-right: 8px;
+  }
+  .explanation {
+    margin-top: 14px;
+    padding: 14px;
+    background: var(--offwhite);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--charcoal);
+    line-height: 1.5;
+    display: none;
+  }
+  .explanation.show { display: block; }
+  .explanation strong { color: var(--navy); }
+
+  .submit-row {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .progress-text {
+    font-size: 14px;
+    color: var(--charcoal);
+    opacity: 0.7;
+  }
+
+  .day-summary {
+    background: white;
+    border-radius: 12px;
+    padding: 28px;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(38, 39, 61, 0.06);
+  }
+  .day-summary h2 { color: var(--navy); margin-bottom: 12px; }
+  .score-big {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--green);
+    margin: 12px 0;
+  }
+  .score-detail {
+    color: var(--charcoal);
+    opacity: 0.7;
+    margin-bottom: 20px;
+  }
+
+  .leaderboard table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  .leaderboard th, .leaderboard td {
+    padding: 12px 8px;
+    text-align: left;
+    border-bottom: 1px solid #e0e2ee;
+    font-size: 14px;
+  }
+  .leaderboard th {
+    color: var(--navy);
+    font-weight: 700;
+    background: var(--offwhite);
+  }
+  .leaderboard td.score {
+    font-weight: 700;
+    text-align: right;
+  }
+  .leaderboard td.day-cell {
+    text-align: center;
+    color: var(--charcoal);
+    opacity: 0.7;
+  }
+  .leaderboard td.day-cell.played {
+    opacity: 1;
+    color: var(--green);
+    font-weight: 600;
+  }
+  .leaderboard tr.you {
+    background: #e8f4fb;
+  }
+  .leaderboard .rank {
+    font-weight: 700;
+    color: var(--navy);
+  }
+  .leaderboard .rank.top { color: var(--gold); }
+
+  .info-box {
+    background: #fffdf5;
+    border-left: 4px solid var(--gold);
+    padding: 14px 16px;
+    border-radius: 8px;
+    margin-top: 14px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .footer-note {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 13px;
+    color: var(--charcoal);
+    opacity: 0.5;
+  }
+
+  @media (max-width: 540px) {
+    h1 { font-size: 26px; }
+    .container { padding: 20px 16px 48px; }
+    .card, .question-card, .day-summary { padding: 20px; }
+    .day-tab { font-size: 14px; padding: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="accent-strip"></div>
+
+<div class="container">
+  <header>
+    <h1>Inside Sprinterra</h1>
+    <div class="subtitle">A leadership game. Pure bragging rights.</div>
+  </header>
+
+  <div id="app"></div>
+
+  <div class="footer-note">
+    Sprinterra Acumatica Practice · Internal · Confidential
+  </div>
+</div>
+
+<script>
+// ============================================================
+// QUESTION DATA
+// ============================================================
+const QUESTIONS = {
+  wed: [
+    {
+      id: 'q1',
+      category: 'Services',
+      points: 10,
+      text: 'Which is NOT a Sprinterra service line?',
+      options: [
+        'Turnkey Upgrades',
+        'Modern UI Migration',
+        'Customization Development',
+        'Acumatica License Resale'
+      ],
+      correct: 3,
+      explanation: 'Sprinterra is not a reseller. We are an Acumatica ISV and Development Service Provider.'
+    },
+    {
+      id: 'q2',
+      category: 'ICP',
+      points: 10,
+      text: 'Sprinterra has four customer audiences. Which one is the most valuable per engagement?',
+      options: [
+        'Transactional VARs',
+        'Strategic VARs',
+        'Direct end-customers',
+        'OEMs'
+      ],
+      correct: 2,
+      explanation: 'Direct end-customers are 3-5x more valuable per engagement than VARs.'
+    },
+    {
+      id: 'q3',
+      category: 'AI Agents',
+      points: 10,
+      text: 'How many AI agents are currently in the Sprinterra pipeline?',
+      options: ['One', 'Two', 'Three', 'Five'],
+      correct: 2,
+      explanation: 'Three: User Behavior Analysis, Automated Customization Upgrades, and Sprinterra Assistant.'
+    },
+    {
+      id: 'q4',
+      category: 'Rates',
+      points: 15,
+      text: 'Why do VARs get a lower rate than end-customers?',
+      options: [
+        'VARs negotiate harder',
+        'VARs deliver volume - we get access to all their clients, so the per-engagement rate is lower in exchange for repeatable pipeline',
+        'End-customers get better quality work',
+        'Acumatica requires it'
+      ],
+      correct: 1,
+      explanation: 'VARs bring volume. One VAR relationship gives us access to all their clients, so we accept a lower rate per engagement in exchange for repeatable, scalable pipeline.'
+    },
+    {
+      id: 'q5',
+      category: 'ISV',
+      points: 10,
+      text: 'Which is a Sprinterra ISV product built on Acumatica?',
+      options: [
+        'Property Management',
+        'Salesforce CRM',
+        'Microsoft Dynamics',
+        'NetSuite Commerce'
+      ],
+      correct: 0,
+      explanation: 'Property Management is one of Sprinterra\'s ISV products. Sprinterra also has Cash Basis Reporting.'
+    }
+  ],
+  thu: [
+    {
+      id: 'q6',
+      category: 'Engagement Models',
+      points: 10,
+      text: 'Sprinterra offers three engagement models. Which combination is correct?',
+      options: [
+        'T&M, Fixed Cost, Prepaid Hour Packages',
+        'T&M, Subscription, Revenue Share',
+        'Fixed Cost, Equity, Retainer',
+        'Hourly only'
+      ],
+      correct: 0,
+      explanation: 'T&M, Fixed Cost, and Prepaid Hour Packages.'
+    },
+    {
+      id: 'q7',
+      category: 'Customer Reality',
+      points: 10,
+      text: 'The biggest near-term demand driver for Acumatica end-customer engagements is:',
+      options: [
+        'Companies migrating from QuickBooks',
+        'Classic UI deprecation in Acumatica 2026 R2',
+        'New Acumatica installations',
+        'AI agents replacing ERPs entirely'
+      ],
+      correct: 1,
+      explanation: 'Classic UI deprecation in Acumatica 2026 R2. Every customer with custom Classic UI screens needs migration before the deadline.'
+    },
+    {
+      id: 'q8',
+      category: 'Brainstorming',
+      points: 10,
+      text: 'At the recent strategy session, the team approved a new listed Sprinterra service that delivers AI-built clickable mockups in a few days. What\'s it called?',
+      options: [
+        'Rapid Prototyping',
+        'AI Demo Builder',
+        'Quick Mockup Service',
+        'Demo-as-a-Service'
+      ],
+      correct: 0,
+      explanation: 'Rapid Prototyping. AI-built clickable mockups during the pre-sales cycle.'
+    },
+    {
+      id: 'q9',
+      category: 'ICP',
+      points: 10,
+      text: 'Which best describes Sprinterra\'s ICP approach?',
+      options: [
+        'VAR-only',
+        'End-customer-only',
+        'Dual-ICP: VARs AND end-customers, with differentiated messaging for each',
+        'Whoever pays'
+      ],
+      correct: 2,
+      explanation: 'Dual-ICP. End-customers and VARs, with separate messaging for each audience.'
+    },
+    {
+      id: 'q10',
+      category: 'Customer Reality',
+      points: 15,
+      text: 'Most mid-market end-customers don\'t have a dedicated ERP manager. What does that mean for our outreach messaging?',
+      options: [
+        'Use heavy technical depth so they trust us',
+        'Strip platform jargon, frame everything as business outcomes',
+        'Send them Acumatica\'s standard product brochure',
+        'Refuse to engage until they hire an ERP manager'
+      ],
+      correct: 1,
+      explanation: 'Strip platform jargon. End-customer decision-makers experience ERP problems as business problems.'
+    }
+  ],
+  fri: [
+    {
+      id: 'q11',
+      category: 'Rates',
+      points: 10,
+      text: 'Which audience pays a higher hourly rate?',
+      options: [
+        'VAR partners',
+        'End-customers',
+        'Same rate for both',
+        'ISVs'
+      ],
+      correct: 1,
+      explanation: 'End-customers pay a higher rate than VAR partners.'
+    },
+    {
+      id: 'q12',
+      category: 'ICP',
+      points: 10,
+      text: 'Which company is the closest reference for Sprinterra\'s Tier 1 end-customer archetype?',
+      options: [
+        'Net at Work',
+        'HD Fowler',
+        'Etticus Solutions',
+        'Acumatica HQ'
+      ],
+      correct: 1,
+      explanation: 'HD Fowler. The wholesale distribution case study is our anchor end-customer archetype.'
+    },
+    {
+      id: 'q13',
+      category: 'AI Agents',
+      points: 15,
+      text: 'The User Behavior Analysis Agent is built for:',
+      options: [
+        'Customer-facing chatbot inside Acumatica',
+        'Capturing real user activity in the Acumatica instance to support upgrade scoping',
+        'Auto-generating customizations from natural language',
+        'Replacing the Sprinterra Assistant'
+      ],
+      correct: 1,
+      explanation: 'Captures real user activity (no PII) to make upgrade testing precise instead of guesswork.'
+    },
+    {
+      id: 'q14',
+      category: 'ISV',
+      points: 15,
+      text: 'Sprinterra\'s Property Management ISV product targets which customer segment?',
+      options: [
+        'Residential homeowners managing their own rental',
+        'Mid-market commercial real estate owner-operators on Acumatica',
+        'Hotels and short-term rentals',
+        'Property managers of any size on any ERP'
+      ],
+      correct: 1,
+      explanation: 'Mid-market commercial real estate owner-operators running Acumatica. PM is built natively on the xRP framework, not as an external integration.'
+    },
+    {
+      id: 'q15',
+      category: 'Friday Magic',
+      points: 30,
+      fridayMagic: true,
+      text: 'What is Sprinterra\'s "Friday Magic"?',
+      options: [
+        'A weekly internal ritual where the team shares wins from the week (closed deals, projects delivered, partner milestones, client compliments)',
+        'A discount Sprinterra offers on Fridays',
+        'An AI agent that runs automated tests on Fridays',
+        'The codename for our gamification project'
+      ],
+      correct: 0,
+      explanation: 'Friday Magic is the internal weekly wins ritual. Share the wins, celebrate the team.'
+    }
+  ]
+};
+
+const DAYS = [
+  { key: 'wed', label: 'Wednesday', subtitle: 'Day 1' },
+  { key: 'thu', label: 'Thursday', subtitle: 'Day 2' },
+  { key: 'fri', label: 'Friday', subtitle: 'Day 3' }
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  player: null,
+  currentDay: 'wed',
+  view: 'loading', // loading | onboarding | rules | playing | summary | leaderboard
+  answers: {}, // { dayKey: { qId: { selected, correct, points } } }
+  daySummary: null
+};
+
+// ============================================================
+// STORAGE HELPERS
+// ============================================================
+async function safeGet(key, shared = false) {
+  try {
+    const r = await window.storage.get(key, shared);
+    return r ? r.value : null;
+  } catch {
+    return null;
+  }
+}
+
+async function safeSet(key, value, shared = false) {
+  try {
+    await window.storage.set(key, value, shared);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function safeList(prefix, shared = false) {
+  try {
+    const r = await window.storage.list(prefix, shared);
+    return r ? r.keys : [];
+  } catch {
+    return [];
+  }
+}
+
+// ============================================================
+// PLAYER + ANSWERS
+// ============================================================
+async function loadPlayer() {
+  const name = await safeGet('player:name', false);
+  if (name) {
+    state.player = name;
+    return true;
+  }
+  return false;
+}
+
+async function savePlayer(name) {
+  state.player = name;
+  await safeSet('player:name', name, false);
+  // also register in shared roster so the leaderboard knows about them
+  const playerKey = 'roster:' + slugify(name);
+  await safeSet(playerKey, JSON.stringify({ name, joined: Date.now() }), true);
+}
+
+async function loadMyAnswers() {
+  // personal: track which days I've completed and my answers
+  const wed = await safeGet('answers:wed', false);
+  const thu = await safeGet('answers:thu', false);
+  const fri = await safeGet('answers:fri', false);
+  state.answers = {
+    wed: wed ? JSON.parse(wed) : null,
+    thu: thu ? JSON.parse(thu) : null,
+    fri: fri ? JSON.parse(fri) : null
+  };
+}
+
+async function saveMyDayAnswers(dayKey, answers, score, breakdown) {
+  const payload = { answers, score, breakdown, completedAt: Date.now() };
+  state.answers[dayKey] = payload;
+  await safeSet('answers:' + dayKey, JSON.stringify(payload), false);
+  // also publish to shared scores
+  const playerSlug = slugify(state.player);
+  await safeSet(
+    'score:' + playerSlug + ':' + dayKey,
+    JSON.stringify({ name: state.player, score, completedAt: payload.completedAt }),
+    true
+  );
+}
+
+function slugify(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'anon';
+}
+
+// ============================================================
+// LEADERBOARD
+// ============================================================
+async function fetchLeaderboard() {
+  // gather all roster + all scores
+  const rosterKeys = await safeList('roster:', true);
+  const players = {};
+
+  for (const k of rosterKeys) {
+    const v = await safeGet(k, true);
+    if (v) {
+      try {
+        const obj = JSON.parse(v);
+        players[obj.name] = { name: obj.name, wed: null, thu: null, fri: null, total: 0 };
+      } catch {}
+    }
+  }
+
+  for (const day of ['wed', 'thu', 'fri']) {
+    const scoreKeys = await safeList('score:', true);
+    for (const k of scoreKeys) {
+      if (!k.endsWith(':' + day)) continue;
+      const v = await safeGet(k, true);
+      if (v) {
+        try {
+          const obj = JSON.parse(v);
+          if (!players[obj.name]) {
+            players[obj.name] = { name: obj.name, wed: null, thu: null, fri: null, total: 0 };
+          }
+          players[obj.name][day] = obj.score;
+        } catch {}
+      }
+    }
+  }
+
+  const list = Object.values(players).map(p => {
+    p.total = (p.wed || 0) + (p.thu || 0) + (p.fri || 0);
+    return p;
+  });
+  list.sort((a, b) => b.total - a.total);
+  return list;
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+const app = document.getElementById('app');
+
+function render() {
+  if (state.view === 'loading') return renderLoading();
+  if (state.view === 'onboarding') return renderOnboarding();
+  if (state.view === 'rules') return renderRules();
+  if (state.view === 'playing') return renderPlaying();
+  if (state.view === 'summary') return renderSummary();
+  if (state.view === 'leaderboard') return renderLeaderboard();
+}
+
+function renderLoading() {
+  app.innerHTML = `<div class="card"><p>Loading…</p></div>`;
+}
+
+function renderOnboarding() {
+  app.innerHTML = `
+    <div class="card">
+      <h2>Welcome to Inside Sprinterra</h2>
+      <p>Five Sprinterra leaders. Three days. One leaderboard.</p>
+      <p>Type your name to get started. You'll see it on the leaderboard.</p>
+      <input id="nameInput" class="name-input" type="text" placeholder="Your name" maxlength="40" />
+      <button id="startBtn">Continue</button>
+    </div>
+  `;
+  const input = document.getElementById('nameInput');
+  input.focus();
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('startBtn').click();
+  });
+  document.getElementById('startBtn').addEventListener('click', async () => {
+    const name = input.value.trim();
+    if (!name) {
+      input.focus();
+      return;
+    }
+    await savePlayer(name);
+    state.view = 'rules';
+    render();
+  });
+}
+
+function renderRules() {
+  app.innerHTML = `
+    <div class="card">
+      <h2>How it works</h2>
+      <p><strong>Welcome, ${escapeHtml(state.player)}.</strong></p>
+
+      <h3>Cadence</h3>
+      <p>This game runs for three days: <strong>Wednesday, Thursday, and Friday this week.</strong> Five questions per day. Play each day's questions whenever it suits you. Once you finish a day, you can't replay it.</p>
+
+      <h3>Scoring</h3>
+      <ul>
+        <li>Most questions are worth 10 or 15 points.</li>
+        <li>Friday closes with one <strong style="color: #8B6914;">⭐ Friday Magic</strong> question worth 30 points.</li>
+        <li>Wrong answers cost nothing. There's no time pressure.</li>
+      </ul>
+
+      <h3>Topics</h3>
+      <p>Each day mixes questions across services, engagement models, rates, ICP, customer reality, ISV business, AI agents, and recent brainstorming decisions. Things you'd expect leadership to know.</p>
+
+      <h3>Leaderboard</h3>
+      <p>Live across all five players. Refresh anytime to see where you stand.</p>
+
+      <h3>Stakes</h3>
+      <p>Bragging rights. That's it.</p>
+
+      <button id="goBtn">Start playing</button>
+      <button id="lbBtn" class="secondary" style="margin-left: 8px;">View leaderboard</button>
+    </div>
+  `;
+  document.getElementById('goBtn').addEventListener('click', () => {
+    state.view = 'playing';
+    state.currentDay = pickDefaultDay();
+    render();
+  });
+  document.getElementById('lbBtn').addEventListener('click', () => {
+    state.view = 'leaderboard';
+    render();
+  });
+}
+
+function pickDefaultDay() {
+  // pick first incomplete day
+  for (const d of ['wed', 'thu', 'fri']) {
+    if (!state.answers[d]) return d;
+  }
+  return 'fri';
+}
+
+function renderPlaying() {
+  const dayKey = state.currentDay;
+  const dayQuestions = QUESTIONS[dayKey];
+  const completed = !!state.answers[dayKey];
+
+  const tabs = DAYS.map(d => {
+    const isActive = d.key === dayKey;
+    const isDone = !!state.answers[d.key];
+    return `<div class="day-tab ${isActive ? 'active' : ''} ${isDone ? 'completed' : ''}" data-day="${d.key}">${d.label}<br><span style="font-weight:400;font-size:12px;opacity:0.8">${d.subtitle}</span></div>`;
+  }).join('');
+
+  if (completed) {
+    const a = state.answers[dayKey];
+    app.innerHTML = `
+      <div class="day-tabs">${tabs}</div>
+      <div class="day-summary">
+        <h2>${dayLabel(dayKey)} - already played</h2>
+        <div class="score-big">${a.score}</div>
+        <div class="score-detail">points scored on ${dayKey === 'wed' ? 'Wednesday' : dayKey === 'thu' ? 'Thursday' : 'Friday'}</div>
+        <button id="lbBtn">View leaderboard</button>
+        <button id="reviewBtn" class="secondary" style="margin-left: 8px;">Review answers</button>
+      </div>
+    `;
+    attachTabHandlers();
+    document.getElementById('lbBtn').addEventListener('click', () => {
+      state.view = 'leaderboard';
+      render();
+    });
+    document.getElementById('reviewBtn').addEventListener('click', () => {
+      renderReview(dayKey);
+    });
+    return;
+  }
+
+  // playing fresh
+  const questionsHtml = dayQuestions.map((q, idx) => renderQuestionCard(q, idx)).join('');
+  app.innerHTML = `
+    <div class="day-tabs">${tabs}</div>
+    <div>${questionsHtml}</div>
+    <div class="card">
+      <div class="submit-row">
+        <div class="progress-text" id="progressText">0 of ${dayQuestions.length} answered</div>
+        <button id="submitBtn" disabled>Submit answers</button>
+      </div>
+    </div>
+  `;
+
+  attachTabHandlers();
+  attachQuestionHandlers(dayKey);
+
+  document.getElementById('submitBtn').addEventListener('click', () => submitDay(dayKey));
+}
+
+function renderQuestionCard(q, idx) {
+  const isFM = !!q.fridayMagic;
+  const optionsHtml = q.options.map((o, i) => `
+    <button class="option" data-q="${q.id}" data-opt="${i}">
+      <span class="option-letter">${String.fromCharCode(65 + i)})</span>${escapeHtml(o)}
+    </button>
+  `).join('');
+  return `
+    <div class="question-card ${isFM ? 'friday-magic' : ''}" id="card-${q.id}">
+      ${isFM ? '<div class="friday-magic-banner">⭐ FRIDAY MAGIC ⭐</div>' : ''}
+      <div class="question-meta">
+        <span>Question ${idx + 1} · ${escapeHtml(q.category)}</span>
+        <span class="points-badge">${q.points} pts</span>
+      </div>
+      <div class="question-text">${escapeHtml(q.text)}</div>
+      <div class="options">${optionsHtml}</div>
+      <div class="explanation" id="exp-${q.id}"></div>
+    </div>
+  `;
+}
+
+let pendingAnswers = {};
+
+function attachQuestionHandlers(dayKey) {
+  pendingAnswers = {};
+  document.querySelectorAll('.option').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const qId = btn.dataset.q;
+      const optIdx = parseInt(btn.dataset.opt, 10);
+      // clear siblings
+      document.querySelectorAll(`.option[data-q="${qId}"]`).forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      pendingAnswers[qId] = optIdx;
+      updateSubmitState(dayKey);
+    });
+  });
+}
+
+function updateSubmitState(dayKey) {
+  const total = QUESTIONS[dayKey].length;
+  const answered = Object.keys(pendingAnswers).length;
+  document.getElementById('progressText').textContent = `${answered} of ${total} answered`;
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = answered < total;
+}
+
+async function submitDay(dayKey) {
+  const dayQuestions = QUESTIONS[dayKey];
+  let score = 0;
+  const breakdown = [];
+
+  // disable all options and reveal correctness
+  dayQuestions.forEach(q => {
+    const selected = pendingAnswers[q.id];
+    const correct = selected === q.correct;
+    const earned = correct ? q.points : 0;
+    score += earned;
+    breakdown.push({ qId: q.id, selected, correct, points: earned });
+
+    document.querySelectorAll(`.option[data-q="${q.id}"]`).forEach(btn => {
+      btn.classList.add('disabled');
+      const optIdx = parseInt(btn.dataset.opt, 10);
+      btn.classList.remove('selected');
+      if (optIdx === q.correct) btn.classList.add('correct');
+      else if (optIdx === selected) btn.classList.add('incorrect');
+    });
+    const exp = document.getElementById('exp-' + q.id);
+    exp.innerHTML = `<strong>${correct ? 'Correct.' : 'Not quite.'}</strong> ${escapeHtml(q.explanation)}`;
+    exp.classList.add('show');
+  });
+
+  await saveMyDayAnswers(dayKey, pendingAnswers, score, breakdown);
+
+  // append summary to bottom
+  const summary = document.createElement('div');
+  summary.className = 'day-summary';
+  summary.style.marginTop = '20px';
+  summary.innerHTML = `
+    <h2>${dayLabel(dayKey)} complete</h2>
+    <div class="score-big">${score}</div>
+    <div class="score-detail">points earned</div>
+    <button id="lbBtn">View leaderboard</button>
+  `;
+  app.appendChild(summary);
+  document.getElementById('lbBtn').addEventListener('click', () => {
+    state.view = 'leaderboard';
+    render();
+  });
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitBtn').textContent = 'Submitted';
+  document.getElementById('progressText').textContent = `Score: ${score} points`;
+
+  window.scrollTo({ top: summary.offsetTop - 20, behavior: 'smooth' });
+}
+
+function renderReview(dayKey) {
+  const dayQuestions = QUESTIONS[dayKey];
+  const a = state.answers[dayKey];
+  const tabs = DAYS.map(d => {
+    const isActive = d.key === dayKey;
+    const isDone = !!state.answers[d.key];
+    return `<div class="day-tab ${isActive ? 'active' : ''} ${isDone ? 'completed' : ''}" data-day="${d.key}">${d.label}<br><span style="font-weight:400;font-size:12px;opacity:0.8">${d.subtitle}</span></div>`;
+  }).join('');
+
+  const cards = dayQuestions.map((q, idx) => {
+    const selected = a.answers[q.id];
+    const correct = selected === q.correct;
+    const isFM = !!q.fridayMagic;
+    const optionsHtml = q.options.map((o, i) => {
+      let cls = 'option disabled';
+      if (i === q.correct) cls += ' correct';
+      else if (i === selected) cls += ' incorrect';
+      return `<div class="${cls}"><span class="option-letter">${String.fromCharCode(65+i)})</span>${escapeHtml(o)}</div>`;
+    }).join('');
+    return `
+      <div class="question-card ${isFM ? 'friday-magic' : ''}">
+        ${isFM ? '<div class="friday-magic-banner">⭐ FRIDAY MAGIC ⭐</div>' : ''}
+        <div class="question-meta">
+          <span>Question ${idx+1} · ${escapeHtml(q.category)}</span>
+          <span class="points-badge">${correct ? q.points : 0} / ${q.points} pts</span>
+        </div>
+        <div class="question-text">${escapeHtml(q.text)}</div>
+        <div class="options">${optionsHtml}</div>
+        <div class="explanation show"><strong>${correct ? 'Correct.' : 'Not quite.'}</strong> ${escapeHtml(q.explanation)}</div>
+      </div>
+    `;
+  }).join('');
+
+  app.innerHTML = `
+    <div class="day-tabs">${tabs}</div>
+    <div>${cards}</div>
+    <div class="card">
+      <div class="submit-row">
+        <div class="progress-text">Day score: ${a.score} points</div>
+        <button id="lbBtn">View leaderboard</button>
+      </div>
+    </div>
+  `;
+  attachTabHandlers();
+  document.getElementById('lbBtn').addEventListener('click', () => {
+    state.view = 'leaderboard';
+    render();
+  });
+}
+
+function attachTabHandlers() {
+  document.querySelectorAll('.day-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      state.currentDay = tab.dataset.day;
+      state.view = 'playing';
+      render();
+    });
+  });
+}
+
+async function renderLeaderboard() {
+  app.innerHTML = `<div class="card"><h2>Leaderboard</h2><p>Loading…</p></div>`;
+  const list = await fetchLeaderboard();
+
+  const rows = list.length === 0
+    ? `<tr><td colspan="5" style="text-align:center; padding: 24px; opacity: 0.6;">No scores yet. Be the first.</td></tr>`
+    : list.map((p, idx) => {
+        const isMe = p.name === state.player;
+        const rankClass = idx === 0 ? 'rank top' : 'rank';
+        return `
+          <tr class="${isMe ? 'you' : ''}">
+            <td class="${rankClass}">${idx + 1}</td>
+            <td><strong>${escapeHtml(p.name)}</strong>${isMe ? ' <span style="opacity:0.6">(you)</span>' : ''}</td>
+            <td class="day-cell ${p.wed !== null ? 'played' : ''}">${p.wed !== null ? p.wed : '-'}</td>
+            <td class="day-cell ${p.thu !== null ? 'played' : ''}">${p.thu !== null ? p.thu : '-'}</td>
+            <td class="day-cell ${p.fri !== null ? 'played' : ''}">${p.fri !== null ? p.fri : '-'}</td>
+            <td class="score">${p.total}</td>
+          </tr>
+        `;
+      }).join('');
+
+  app.innerHTML = `
+    <div class="card leaderboard">
+      <h2>Leaderboard</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Player</th>
+            <th style="text-align:center">Wed</th>
+            <th style="text-align:center">Thu</th>
+            <th style="text-align:center">Fri</th>
+            <th style="text-align:right">Total</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="info-box">
+        Three days. Wednesday, Thursday, Friday. Five questions each day. Friday closes with the 30-point Friday Magic question.
+      </div>
+      <div style="margin-top: 18px;">
+        <button id="backBtn">Back to game</button>
+        <button id="refreshBtn" class="secondary" style="margin-left: 8px;">Refresh</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('backBtn').addEventListener('click', () => {
+    state.view = 'playing';
+    state.currentDay = pickDefaultDay();
+    render();
+  });
+  document.getElementById('refreshBtn').addEventListener('click', () => renderLeaderboard());
+}
+
+function dayLabel(key) {
+  return key === 'wed' ? 'Wednesday' : key === 'thu' ? 'Thursday' : 'Friday';
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+async function boot() {
+  const hasPlayer = await loadPlayer();
+  if (hasPlayer) {
+    await loadMyAnswers();
+    state.view = 'rules';
+  } else {
+    state.view = 'onboarding';
+  }
+  render();
+}
+
+boot();
+</script>
+</body>
+</html>
