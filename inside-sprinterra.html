@@ -603,26 +603,36 @@ async function safeGet(key, shared = false) {
   try {
     const r = await window.storage.get(key, shared);
     return r ? r.value : null;
-  } catch {
+  } catch (err) {
+    console.warn('[storage] get failed for', key, 'shared:', shared, err);
     return null;
-  }
-}
-
-async function safeSet(key, value, shared = false) {
-  try {
-    await window.storage.set(key, value, shared);
-    return true;
-  } catch {
-    return false;
   }
 }
 
 async function safeList(prefix, shared = false) {
   try {
     const r = await window.storage.list(prefix, shared);
-    return r ? r.keys : [];
-  } catch {
+    const keys = r ? r.keys : [];
+    console.log('[storage] list', prefix, 'shared:', shared, '->', keys.length, 'keys');
+    return keys;
+  } catch (err) {
+    console.warn('[storage] list failed for', prefix, 'shared:', shared, err);
     return [];
+  }
+}
+
+async function safeSet(key, value, shared = false) {
+  try {
+    const r = await window.storage.set(key, value, shared);
+    if (!r) {
+      console.warn('[storage] set returned null/false for', key, 'shared:', shared);
+      return false;
+    }
+    console.log('[storage] set OK:', key, 'shared:', shared);
+    return true;
+  } catch (err) {
+    console.error('[storage] set FAILED for', key, 'shared:', shared, err);
+    return false;
   }
 }
 
@@ -678,6 +688,34 @@ function slugify(s) {
 // ============================================================
 // LEADERBOARD
 // ============================================================
+async function resyncMyScores() {
+  if (!state.player) return { synced: 0, errors: [] };
+  console.log('[resync] starting for player:', state.player);
+
+  // re-register in roster
+  const playerKey = 'roster:' + slugify(state.player);
+  const rosterOk = await safeSet(playerKey, JSON.stringify({ name: state.player, joined: Date.now() }), true);
+  console.log('[resync] roster write:', rosterOk);
+
+  let synced = 0;
+  const errors = [];
+
+  for (const day of ['wed', 'thu', 'fri']) {
+    const a = state.answers[day];
+    if (!a) continue;
+    const playerSlug = slugify(state.player);
+    const ok = await safeSet(
+      'score:' + playerSlug + ':' + day,
+      JSON.stringify({ name: state.player, score: a.score, completedAt: a.completedAt }),
+      true
+    );
+    if (ok) synced++;
+    else errors.push(day);
+  }
+  console.log('[resync] complete. synced:', synced, 'errors:', errors);
+  return { synced, errors };
+}
+
 async function fetchLeaderboard() {
   // gather all roster + all scores
   const rosterKeys = await safeList('roster:', true);
@@ -1067,7 +1105,9 @@ async function renderLeaderboard() {
       <div style="margin-top: 18px;">
         <button id="backBtn">Back to game</button>
         <button id="refreshBtn" class="secondary" style="margin-left: 8px;">Refresh</button>
+        <button id="resyncBtn" class="secondary" style="margin-left: 8px;">Resync my score</button>
       </div>
+      <div id="resyncStatus" style="margin-top: 12px; font-size: 13px; color: var(--charcoal); opacity: 0.7;"></div>
     </div>
   `;
   document.getElementById('backBtn').addEventListener('click', () => {
@@ -1076,6 +1116,19 @@ async function renderLeaderboard() {
     render();
   });
   document.getElementById('refreshBtn').addEventListener('click', () => renderLeaderboard());
+  document.getElementById('resyncBtn').addEventListener('click', async () => {
+    const status = document.getElementById('resyncStatus');
+    status.textContent = 'Resyncing…';
+    const result = await resyncMyScores();
+    if (result.synced === 0 && result.errors.length === 0) {
+      status.textContent = 'No local scores to resync. Play a day first.';
+    } else if (result.errors.length === 0) {
+      status.textContent = `Resynced ${result.synced} day(s). Refreshing…`;
+      setTimeout(() => renderLeaderboard(), 600);
+    } else {
+      status.textContent = `Synced ${result.synced} day(s). Failed on: ${result.errors.join(', ')}. Check browser console for details.`;
+    }
+  });
 }
 
 function dayLabel(key) {
