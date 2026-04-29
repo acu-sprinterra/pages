@@ -746,7 +746,8 @@ async function loadPlayer() {
 async function savePlayer(name) {
   state.player = name;
   lsSet('player:name', name);
-  await registerPlayerInBin(name);
+  // Fire-and-forget: don't block the UI on the slow JSONBin write
+  registerPlayerInBin(name).catch(err => console.error('[bg] register failed:', err));
 }
 
 async function loadMyAnswers() {
@@ -765,7 +766,9 @@ async function saveMyDayAnswers(dayKey, answers, score, breakdown) {
   const payload = { answers, score, breakdown, completedAt };
   state.answers[dayKey] = payload;
   lsSet('answers:' + dayKey, JSON.stringify(payload));
-  await publishScoreToBin(state.player, dayKey, score, completedAt);
+  // Fire-and-forget: don't block the user's UI on the slow JSONBin write
+  publishScoreToBin(state.player, dayKey, score, completedAt)
+    .catch(err => console.error('[bg] publish score failed:', err));
 }
 
 function slugify(s) {
