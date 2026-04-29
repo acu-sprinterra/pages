@@ -616,37 +616,46 @@ const JSONBIN_KEY = '$2a$10$.CeMipZKiYEZ9WLKUhNw1OW6J4yKDMA/gnzSViKvHR.sP67AyTFj
 const JSONBIN_ID = '69f258c136566621a8081fd6';
 const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/' + JSONBIN_ID;
 
-// In-memory cache of the bin contents to avoid repeated reads.
+// In-memory cache of the bin contents.
+// Strategy: load once at boot, serve from memory for the rest of the session.
+// Only refetch when user clicks Refresh, or after a write (to confirm).
 let _binCache = null;
-let _binCacheTime = 0;
-const BIN_CACHE_TTL = 8000; // 8 seconds - fresh enough but avoids spam
+let _binFetchInFlight = null; // dedupe concurrent fetches
 
 async function readBin(forceFresh = false) {
-  // serve cache if recent
-  if (!forceFresh && _binCache && (Date.now() - _binCacheTime < BIN_CACHE_TTL)) {
+  // Serve cache immediately if we have one and not forcing fresh
+  if (!forceFresh && _binCache !== null) {
     return _binCache;
   }
-  try {
-    const r = await fetch(JSONBIN_URL + '/latest', {
-      method: 'GET',
-      headers: {
-        'X-Master-Key': JSONBIN_KEY,
-        'X-Bin-Meta': 'false'
+  // Dedupe: if a fetch is already running, wait for it
+  if (_binFetchInFlight) {
+    return _binFetchInFlight;
+  }
+  _binFetchInFlight = (async () => {
+    try {
+      const r = await fetch(JSONBIN_URL + '/latest', {
+        method: 'GET',
+        headers: {
+          'X-Master-Key': JSONBIN_KEY,
+          'X-Bin-Meta': 'false'
+        }
+      });
+      if (!r.ok) {
+        console.error('[jsonbin] read failed:', r.status);
+        return _binCache; // return stale cache rather than null
       }
-    });
-    if (!r.ok) {
-      console.error('[jsonbin] read failed:', r.status);
-      return _binCache; // fall back to whatever we had
+      const data = await r.json();
+      const record = data && data.record ? data.record : data;
+      _binCache = record || { players: [] };
+      return _binCache;
+    } catch (err) {
+      console.error('[jsonbin] read error:', err);
+      return _binCache;
+    } finally {
+      _binFetchInFlight = null;
     }
-    const data = await r.json();
-    const record = data && data.record ? data.record : data;
-    _binCache = record || { players: [] };
-    _binCacheTime = Date.now();
-    return _binCache;
-  } catch (err) {
-    console.error('[jsonbin] read error:', err);
-    return _binCache;
-  }
+  })();
+  return _binFetchInFlight;
 }
 
 async function writeBin(record) {
@@ -663,8 +672,7 @@ async function writeBin(record) {
       console.error('[jsonbin] write failed:', r.status);
       return false;
     }
-    _binCache = record;
-    _binCacheTime = Date.now();
+    _binCache = record; // local cache reflects the new state
     return true;
   } catch (err) {
     console.error('[jsonbin] write error:', err);
@@ -675,7 +683,7 @@ async function writeBin(record) {
 // Push a player's score for a specific day to the shared bin.
 // Bin shape: { players: [ { name, slug, wed, thu, fri, completedAt: { wed, thu, fri } } ] }
 async function publishScoreToBin(playerName, dayKey, score, completedAt) {
-  const bin = await readBin();
+  const bin = await readBin(); // uses cache if available
   if (!bin) return false;
   const record = bin.players ? bin : { players: [] };
   const slug = slugify(playerName);
@@ -684,7 +692,7 @@ async function publishScoreToBin(playerName, dayKey, score, completedAt) {
     p = { name: playerName, slug, wed: null, thu: null, fri: null, completedAt: {} };
     record.players.push(p);
   }
-  p.name = playerName; // keep latest casing
+  p.name = playerName;
   p[dayKey] = score;
   p.completedAt = p.completedAt || {};
   p.completedAt[dayKey] = completedAt;
@@ -702,12 +710,17 @@ async function registerPlayerInBin(playerName) {
     record.players.push(p);
     return await writeBin(record);
   }
-  // already registered - keep latest casing if it changed
   if (p.name !== playerName) {
     p.name = playerName;
     return await writeBin(record);
   }
   return true;
+}
+
+// Admin-only: wipe the entire shared leaderboard. Used by the reset button.
+async function adminResetBin() {
+  const ok = await writeBin({ players: [] });
+  return ok;
 }
 
 // LocalStorage helpers for personal data (player name + own answers).
@@ -1096,14 +1109,19 @@ function attachTabHandlers() {
 
 async function renderLeaderboard(forceFresh = false) {
   // Render shell first so the user sees instant feedback
+  const isCached = _binCache !== null && !forceFresh;
   app.innerHTML = `
     <div class="card leaderboard">
       <h2>Leaderboard</h2>
       <div id="lbBody">
-        <div style="padding: 32px 0; text-align: center;">
-          <div class="spinner"></div>
-          <div style="margin-top: 12px; color: var(--charcoal); opacity: 0.7;">Loading scores…</div>
-        </div>
+        ${isCached ? '' : `
+          <div style="padding: 32px 0; text-align: center;">
+            <div class="spinner"></div>
+            <div style="margin-top: 12px; color: var(--charcoal); opacity: 0.7;">
+              Loading scores… <span style="opacity: 0.6">(JSONBin free tier can be slow)</span>
+            </div>
+          </div>
+        `}
       </div>
     </div>
   `;
@@ -1129,6 +1147,9 @@ async function renderLeaderboard(forceFresh = false) {
 
   const body = document.getElementById('lbBody');
   if (!body) return; // user navigated away
+
+  const isAlex = (state.player || '').trim().toLowerCase() === 'alex';
+
   body.innerHTML = `
     <table>
       <thead>
@@ -1150,6 +1171,7 @@ async function renderLeaderboard(forceFresh = false) {
       <button id="backBtn">Back to game</button>
       <button id="refreshBtn" class="secondary" style="margin-left: 8px;">Refresh</button>
       <button id="resyncBtn" class="secondary" style="margin-left: 8px;">Resync my score</button>
+      ${isAlex ? '<button id="adminResetBtn" style="margin-left: 8px; background: #c93838;">Reset leaderboard (Alex)</button>' : ''}
     </div>
     <div id="resyncStatus" style="margin-top: 12px; font-size: 13px; color: var(--charcoal); opacity: 0.7;"></div>
   `;
@@ -1168,11 +1190,34 @@ async function renderLeaderboard(forceFresh = false) {
       status.textContent = 'No local scores to resync. Play a day first.';
     } else if (result.errors.length === 0) {
       status.textContent = `Resynced ${result.synced} day(s). Refreshing…`;
-      setTimeout(() => renderLeaderboard(true), 400);
+      setTimeout(() => renderLeaderboard(false), 200);
     } else {
-      status.textContent = `Synced ${result.synced} day(s). Failed on: ${result.errors.join(', ')}. Check browser console for details.`;
+      status.textContent = `Synced ${result.synced} day(s). Failed on: ${result.errors.join(', ')}.`;
     }
   });
+  if (isAlex) {
+    document.getElementById('adminResetBtn').addEventListener('click', async () => {
+      const status = document.getElementById('resyncStatus');
+      if (!confirm('Reset the entire leaderboard? This wipes all 5 players\' scores from the shared bin. Local progress on each player\'s browser is unaffected unless they also clear it. Continue?')) {
+        return;
+      }
+      status.textContent = 'Resetting leaderboard…';
+      const ok = await adminResetBin();
+      if (ok) {
+        // also clear my own local progress so I can replay
+        try {
+          localStorage.removeItem('answers:wed');
+          localStorage.removeItem('answers:thu');
+          localStorage.removeItem('answers:fri');
+        } catch {}
+        state.answers = { wed: null, thu: null, fri: null };
+        status.textContent = 'Leaderboard wiped. Your local progress also cleared so you can replay.';
+        setTimeout(() => renderLeaderboard(false), 600);
+      } else {
+        status.textContent = 'Reset failed. Check the console.';
+      }
+    });
+  }
 }
 
 function dayLabel(key) {
