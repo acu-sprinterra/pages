@@ -336,6 +336,19 @@
     opacity: 0.5;
   }
 
+  .spinner {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    border: 3px solid #e0e2ee;
+    border-top-color: var(--navy);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
   @media (max-width: 540px) {
     h1 { font-size: 26px; }
     .container { padding: 20px 16px 48px; }
@@ -605,8 +618,14 @@ const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/' + JSONBIN_ID;
 
 // In-memory cache of the bin contents to avoid repeated reads.
 let _binCache = null;
+let _binCacheTime = 0;
+const BIN_CACHE_TTL = 8000; // 8 seconds - fresh enough but avoids spam
 
-async function readBin() {
+async function readBin(forceFresh = false) {
+  // serve cache if recent
+  if (!forceFresh && _binCache && (Date.now() - _binCacheTime < BIN_CACHE_TTL)) {
+    return _binCache;
+  }
   try {
     const r = await fetch(JSONBIN_URL + '/latest', {
       method: 'GET',
@@ -617,16 +636,16 @@ async function readBin() {
     });
     if (!r.ok) {
       console.error('[jsonbin] read failed:', r.status);
-      return null;
+      return _binCache; // fall back to whatever we had
     }
     const data = await r.json();
-    // JSONBin v3 returns either the raw record (X-Bin-Meta:false) or { record: ... }
     const record = data && data.record ? data.record : data;
     _binCache = record || { players: [] };
+    _binCacheTime = Date.now();
     return _binCache;
   } catch (err) {
     console.error('[jsonbin] read error:', err);
-    return null;
+    return _binCache;
   }
 }
 
@@ -645,6 +664,7 @@ async function writeBin(record) {
       return false;
     }
     _binCache = record;
+    _binCacheTime = Date.now();
     return true;
   } catch (err) {
     console.error('[jsonbin] write error:', err);
@@ -759,8 +779,8 @@ async function resyncMyScores() {
   return { synced, errors };
 }
 
-async function fetchLeaderboard() {
-  const bin = await readBin();
+async function fetchLeaderboard(forceFresh = false) {
+  const bin = await readBin(forceFresh);
   if (!bin || !bin.players) return [];
   const list = bin.players.map(p => ({
     name: p.name,
@@ -1074,12 +1094,24 @@ function attachTabHandlers() {
   });
 }
 
-async function renderLeaderboard() {
-  app.innerHTML = `<div class="card"><h2>Leaderboard</h2><p>Loading…</p></div>`;
-  const list = await fetchLeaderboard();
+async function renderLeaderboard(forceFresh = false) {
+  // Render shell first so the user sees instant feedback
+  app.innerHTML = `
+    <div class="card leaderboard">
+      <h2>Leaderboard</h2>
+      <div id="lbBody">
+        <div style="padding: 32px 0; text-align: center;">
+          <div class="spinner"></div>
+          <div style="margin-top: 12px; color: var(--charcoal); opacity: 0.7;">Loading scores…</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const list = await fetchLeaderboard(forceFresh);
 
   const rows = list.length === 0
-    ? `<tr><td colspan="5" style="text-align:center; padding: 24px; opacity: 0.6;">No scores yet. Be the first.</td></tr>`
+    ? `<tr><td colspan="6" style="text-align:center; padding: 24px; opacity: 0.6;">No scores yet. Be the first.</td></tr>`
     : list.map((p, idx) => {
         const isMe = p.name === state.player;
         const rankClass = idx === 0 ? 'rank top' : 'rank';
@@ -1095,48 +1127,48 @@ async function renderLeaderboard() {
         `;
       }).join('');
 
-  app.innerHTML = `
-    <div class="card leaderboard">
-      <h2>Leaderboard</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Player</th>
-            <th style="text-align:center">Wed</th>
-            <th style="text-align:center">Thu</th>
-            <th style="text-align:center">Fri</th>
-            <th style="text-align:right">Total</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <div class="info-box">
-        Three days. Wednesday, Thursday, Friday. Five questions each day. Friday closes with the 30-point Friday Magic question.
-      </div>
-      <div style="margin-top: 18px;">
-        <button id="backBtn">Back to game</button>
-        <button id="refreshBtn" class="secondary" style="margin-left: 8px;">Refresh</button>
-        <button id="resyncBtn" class="secondary" style="margin-left: 8px;">Resync my score</button>
-      </div>
-      <div id="resyncStatus" style="margin-top: 12px; font-size: 13px; color: var(--charcoal); opacity: 0.7;"></div>
+  const body = document.getElementById('lbBody');
+  if (!body) return; // user navigated away
+  body.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th style="text-align:center">Wed</th>
+          <th style="text-align:center">Thu</th>
+          <th style="text-align:center">Fri</th>
+          <th style="text-align:right">Total</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="info-box">
+      Three days. Wednesday, Thursday, Friday. Five questions each day. Friday closes with the 30-point Friday Magic question.
     </div>
+    <div style="margin-top: 18px;">
+      <button id="backBtn">Back to game</button>
+      <button id="refreshBtn" class="secondary" style="margin-left: 8px;">Refresh</button>
+      <button id="resyncBtn" class="secondary" style="margin-left: 8px;">Resync my score</button>
+    </div>
+    <div id="resyncStatus" style="margin-top: 12px; font-size: 13px; color: var(--charcoal); opacity: 0.7;"></div>
   `;
   document.getElementById('backBtn').addEventListener('click', () => {
     state.view = 'playing';
     state.currentDay = pickDefaultDay();
     render();
   });
-  document.getElementById('refreshBtn').addEventListener('click', () => renderLeaderboard());
+  document.getElementById('refreshBtn').addEventListener('click', () => renderLeaderboard(true));
   document.getElementById('resyncBtn').addEventListener('click', async () => {
     const status = document.getElementById('resyncStatus');
+    if (!status) return;
     status.textContent = 'Resyncing…';
     const result = await resyncMyScores();
     if (result.synced === 0 && result.errors.length === 0) {
       status.textContent = 'No local scores to resync. Play a day first.';
     } else if (result.errors.length === 0) {
       status.textContent = `Resynced ${result.synced} day(s). Refreshing…`;
-      setTimeout(() => renderLeaderboard(), 600);
+      setTimeout(() => renderLeaderboard(true), 400);
     } else {
       status.textContent = `Synced ${result.synced} day(s). Failed on: ${result.errors.join(', ')}. Check browser console for details.`;
     }
@@ -1168,6 +1200,8 @@ async function boot() {
     state.view = 'onboarding';
   }
   render();
+  // warm the leaderboard cache in the background so first click is instant
+  setTimeout(() => { readBin().catch(() => {}); }, 50);
 }
 
 boot();
