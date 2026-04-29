@@ -205,6 +205,10 @@
     font-size: 15px;
     text-align: left;
     line-height: 1.4;
+    color: var(--charcoal);
+    font-family: inherit;
+    width: 100%;
+    display: block;
   }
   .option:hover:not(.disabled) {
     border-color: var(--sky);
@@ -684,26 +688,31 @@ async function fetchLeaderboard() {
     if (v) {
       try {
         const obj = JSON.parse(v);
-        players[obj.name] = { name: obj.name, wed: null, thu: null, fri: null, total: 0 };
+        if (obj && obj.name) {
+          players[obj.name] = { name: obj.name, wed: null, thu: null, fri: null, total: 0 };
+        }
       } catch {}
     }
   }
 
-  for (const day of ['wed', 'thu', 'fri']) {
-    const scoreKeys = await safeList('score:', true);
-    for (const k of scoreKeys) {
-      if (!k.endsWith(':' + day)) continue;
-      const v = await safeGet(k, true);
-      if (v) {
-        try {
-          const obj = JSON.parse(v);
-          if (!players[obj.name]) {
-            players[obj.name] = { name: obj.name, wed: null, thu: null, fri: null, total: 0 };
-          }
-          players[obj.name][day] = obj.score;
-        } catch {}
-      }
+  // pull all scores once, then distribute by day
+  const scoreKeys = await safeList('score:', true);
+  for (const k of scoreKeys) {
+    const v = await safeGet(k, true);
+    if (!v) continue;
+    let obj;
+    try { obj = JSON.parse(v); } catch { continue; }
+    if (!obj || !obj.name) continue;
+
+    // key format: score:<slug>:<day>
+    const parts = k.split(':');
+    const day = parts[parts.length - 1];
+    if (!['wed', 'thu', 'fri'].includes(day)) continue;
+
+    if (!players[obj.name]) {
+      players[obj.name] = { name: obj.name, wed: null, thu: null, fri: null, total: 0 };
     }
+    players[obj.name][day] = obj.score;
   }
 
   const list = Object.values(players).map(p => {
