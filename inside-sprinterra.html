@@ -597,50 +597,112 @@ let state = {
 };
 
 // ============================================================
-// STORAGE HELPERS
+// STORAGE: JSONBin-backed shared leaderboard + localStorage for personal
 // ============================================================
-async function safeGet(key, shared = false) {
+const JSONBIN_KEY = '$2a$10$.CeMipZKiYEZ9WLKUhNw1OW6J4yKDMA/gnzSViKvHR.sP67AyTFju';
+const JSONBIN_ID = '69f258c136566621a8081fd6';
+const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/' + JSONBIN_ID;
+
+// In-memory cache of the bin contents to avoid repeated reads.
+let _binCache = null;
+
+async function readBin() {
   try {
-    const r = await window.storage.get(key, shared);
-    return r ? r.value : null;
+    const r = await fetch(JSONBIN_URL + '/latest', {
+      method: 'GET',
+      headers: {
+        'X-Master-Key': JSONBIN_KEY,
+        'X-Bin-Meta': 'false'
+      }
+    });
+    if (!r.ok) {
+      console.error('[jsonbin] read failed:', r.status);
+      return null;
+    }
+    const data = await r.json();
+    // JSONBin v3 returns either the raw record (X-Bin-Meta:false) or { record: ... }
+    const record = data && data.record ? data.record : data;
+    _binCache = record || { players: [] };
+    return _binCache;
   } catch (err) {
-    console.warn('[storage] get failed for', key, 'shared:', shared, err);
+    console.error('[jsonbin] read error:', err);
     return null;
   }
 }
 
-async function safeList(prefix, shared = false) {
+async function writeBin(record) {
   try {
-    const r = await window.storage.list(prefix, shared);
-    const keys = r ? r.keys : [];
-    console.log('[storage] list', prefix, 'shared:', shared, '->', keys.length, 'keys');
-    return keys;
+    const r = await fetch(JSONBIN_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_KEY
+      },
+      body: JSON.stringify(record)
+    });
+    if (!r.ok) {
+      console.error('[jsonbin] write failed:', r.status);
+      return false;
+    }
+    _binCache = record;
+    return true;
   } catch (err) {
-    console.warn('[storage] list failed for', prefix, 'shared:', shared, err);
-    return [];
+    console.error('[jsonbin] write error:', err);
+    return false;
   }
 }
 
-async function safeSet(key, value, shared = false) {
-  try {
-    const r = await window.storage.set(key, value, shared);
-    if (!r) {
-      console.warn('[storage] set returned null/false for', key, 'shared:', shared);
-      return false;
-    }
-    console.log('[storage] set OK:', key, 'shared:', shared);
-    return true;
-  } catch (err) {
-    console.error('[storage] set FAILED for', key, 'shared:', shared, err);
-    return false;
+// Push a player's score for a specific day to the shared bin.
+// Bin shape: { players: [ { name, slug, wed, thu, fri, completedAt: { wed, thu, fri } } ] }
+async function publishScoreToBin(playerName, dayKey, score, completedAt) {
+  const bin = await readBin();
+  if (!bin) return false;
+  const record = bin.players ? bin : { players: [] };
+  const slug = slugify(playerName);
+  let p = record.players.find(x => x.slug === slug);
+  if (!p) {
+    p = { name: playerName, slug, wed: null, thu: null, fri: null, completedAt: {} };
+    record.players.push(p);
   }
+  p.name = playerName; // keep latest casing
+  p[dayKey] = score;
+  p.completedAt = p.completedAt || {};
+  p.completedAt[dayKey] = completedAt;
+  return await writeBin(record);
+}
+
+async function registerPlayerInBin(playerName) {
+  const bin = await readBin();
+  if (!bin) return false;
+  const record = bin.players ? bin : { players: [] };
+  const slug = slugify(playerName);
+  let p = record.players.find(x => x.slug === slug);
+  if (!p) {
+    p = { name: playerName, slug, wed: null, thu: null, fri: null, completedAt: {} };
+    record.players.push(p);
+    return await writeBin(record);
+  }
+  // already registered - keep latest casing if it changed
+  if (p.name !== playerName) {
+    p.name = playerName;
+    return await writeBin(record);
+  }
+  return true;
+}
+
+// LocalStorage helpers for personal data (player name + own answers).
+function lsGet(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function lsSet(key, value) {
+  try { localStorage.setItem(key, value); return true; } catch { return false; }
 }
 
 // ============================================================
 // PLAYER + ANSWERS
 // ============================================================
 async function loadPlayer() {
-  const name = await safeGet('player:name', false);
+  const name = lsGet('player:name');
   if (name) {
     state.player = name;
     return true;
@@ -650,17 +712,14 @@ async function loadPlayer() {
 
 async function savePlayer(name) {
   state.player = name;
-  await safeSet('player:name', name, false);
-  // also register in shared roster so the leaderboard knows about them
-  const playerKey = 'roster:' + slugify(name);
-  await safeSet(playerKey, JSON.stringify({ name, joined: Date.now() }), true);
+  lsSet('player:name', name);
+  await registerPlayerInBin(name);
 }
 
 async function loadMyAnswers() {
-  // personal: track which days I've completed and my answers
-  const wed = await safeGet('answers:wed', false);
-  const thu = await safeGet('answers:thu', false);
-  const fri = await safeGet('answers:fri', false);
+  const wed = lsGet('answers:wed');
+  const thu = lsGet('answers:thu');
+  const fri = lsGet('answers:fri');
   state.answers = {
     wed: wed ? JSON.parse(wed) : null,
     thu: thu ? JSON.parse(thu) : null,
@@ -669,16 +728,11 @@ async function loadMyAnswers() {
 }
 
 async function saveMyDayAnswers(dayKey, answers, score, breakdown) {
-  const payload = { answers, score, breakdown, completedAt: Date.now() };
+  const completedAt = Date.now();
+  const payload = { answers, score, breakdown, completedAt };
   state.answers[dayKey] = payload;
-  await safeSet('answers:' + dayKey, JSON.stringify(payload), false);
-  // also publish to shared scores
-  const playerSlug = slugify(state.player);
-  await safeSet(
-    'score:' + playerSlug + ':' + dayKey,
-    JSON.stringify({ name: state.player, score, completedAt: payload.completedAt }),
-    true
-  );
+  lsSet('answers:' + dayKey, JSON.stringify(payload));
+  await publishScoreToBin(state.player, dayKey, score, completedAt);
 }
 
 function slugify(s) {
@@ -690,12 +744,7 @@ function slugify(s) {
 // ============================================================
 async function resyncMyScores() {
   if (!state.player) return { synced: 0, errors: [] };
-  console.log('[resync] starting for player:', state.player);
-
-  // re-register in roster
-  const playerKey = 'roster:' + slugify(state.player);
-  const rosterOk = await safeSet(playerKey, JSON.stringify({ name: state.player, joined: Date.now() }), true);
-  console.log('[resync] roster write:', rosterOk);
+  await registerPlayerInBin(state.player);
 
   let synced = 0;
   const errors = [];
@@ -703,60 +752,23 @@ async function resyncMyScores() {
   for (const day of ['wed', 'thu', 'fri']) {
     const a = state.answers[day];
     if (!a) continue;
-    const playerSlug = slugify(state.player);
-    const ok = await safeSet(
-      'score:' + playerSlug + ':' + day,
-      JSON.stringify({ name: state.player, score: a.score, completedAt: a.completedAt }),
-      true
-    );
+    const ok = await publishScoreToBin(state.player, day, a.score, a.completedAt);
     if (ok) synced++;
     else errors.push(day);
   }
-  console.log('[resync] complete. synced:', synced, 'errors:', errors);
   return { synced, errors };
 }
 
 async function fetchLeaderboard() {
-  // gather all roster + all scores
-  const rosterKeys = await safeList('roster:', true);
-  const players = {};
-
-  for (const k of rosterKeys) {
-    const v = await safeGet(k, true);
-    if (v) {
-      try {
-        const obj = JSON.parse(v);
-        if (obj && obj.name) {
-          players[obj.name] = { name: obj.name, wed: null, thu: null, fri: null, total: 0 };
-        }
-      } catch {}
-    }
-  }
-
-  // pull all scores once, then distribute by day
-  const scoreKeys = await safeList('score:', true);
-  for (const k of scoreKeys) {
-    const v = await safeGet(k, true);
-    if (!v) continue;
-    let obj;
-    try { obj = JSON.parse(v); } catch { continue; }
-    if (!obj || !obj.name) continue;
-
-    // key format: score:<slug>:<day>
-    const parts = k.split(':');
-    const day = parts[parts.length - 1];
-    if (!['wed', 'thu', 'fri'].includes(day)) continue;
-
-    if (!players[obj.name]) {
-      players[obj.name] = { name: obj.name, wed: null, thu: null, fri: null, total: 0 };
-    }
-    players[obj.name][day] = obj.score;
-  }
-
-  const list = Object.values(players).map(p => {
-    p.total = (p.wed || 0) + (p.thu || 0) + (p.fri || 0);
-    return p;
-  });
+  const bin = await readBin();
+  if (!bin || !bin.players) return [];
+  const list = bin.players.map(p => ({
+    name: p.name,
+    wed: (p.wed === undefined ? null : p.wed),
+    thu: (p.thu === undefined ? null : p.thu),
+    fri: (p.fri === undefined ? null : p.fri),
+    total: (p.wed || 0) + (p.thu || 0) + (p.fri || 0)
+  }));
   list.sort((a, b) => b.total - a.total);
   return list;
 }
