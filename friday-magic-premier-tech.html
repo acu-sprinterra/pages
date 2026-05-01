@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Friday Magic - Premier Tech Review</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;800;900&family=Rubik:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0a0b1a;
+    overflow: hidden;
+    font-family: 'Rubik', sans-serif;
+  }
+
+  .scene {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .scene::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 55% at 25% 75%, rgba(25, 39, 125, 0.5) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 45% at 80% 25%, rgba(56, 170, 241, 0.2) 0%, transparent 50%),
+      radial-gradient(ellipse 40% 35% at 60% 80%, rgba(25, 185, 41, 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse 90% 80% at 50% 50%, #19277D 0%, #0a0b1a 100%);
+  }
+
+  .mesh {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(56, 170, 241, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(25, 185, 41, 0.06) 0%, transparent 40%);
+    animation: meshShift 12s ease-in-out infinite alternate;
+  }
+  @keyframes meshShift {
+    0% { transform: scale(1) translate(0, 0); }
+    100% { transform: scale(1.1) translate(-2%, 3%); }
+  }
+
+  .stars { position: absolute; inset: 0; }
+  .star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: #fff;
+    border-radius: 50%;
+    animation: twinkle var(--dur) ease-in-out infinite alternate;
+  }
+  @keyframes twinkle {
+    0% { opacity: 0.1; transform: scale(1); }
+    100% { opacity: 0.9; transform: scale(1.5); }
+  }
+
+  /* Top header */
+  .header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #19B929, #38AAF1, #19277D);
+    z-index: 20;
+  }
+
+  .logo-wrap {
+    position: absolute;
+    top: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    animation: fadeDown 1s 0.2s ease-out both;
+  }
+  .logo-wrap img { height: 32px; filter: brightness(10); }
+  @keyframes fadeDown {
+    0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  /* Friday Magic title */
+  .fm-title {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    margin-bottom: 32px;
+    animation: fadeUp 1s 0.3s ease-out both;
+  }
+
+  .fm-eyebrow {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 600;
+    font-size: clamp(0.7rem, 1.5vw, 0.95rem);
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: rgba(56, 170, 241, 0.7);
+    margin-bottom: 6px;
+  }
+
+  .fm-heading {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 900;
+    font-size: clamp(2.5rem, 8vw, 5.5rem);
+    line-height: 0.92;
+    background: linear-gradient(135deg, #38AAF1 0%, #fff 30%, #19B929 55%, #38AAF1 80%, #fff 100%);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 5s ease-in-out infinite;
+    filter: drop-shadow(0 0 30px rgba(56, 170, 241, 0.3));
+  }
+  .fm-heading span {
+    display: block;
+    font-weight: 800;
+    font-size: 0.45em;
+    letter-spacing: 0.05em;
+    background: linear-gradient(90deg, #38AAF1, #19B929);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-top: 0.1em;
+  }
+  @keyframes shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  @keyframes fadeUp {
+    0% { opacity: 0; transform: translateY(30px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Review card */
+  .review-card {
+    position: relative;
+    z-index: 10;
+    max-width: 780px;
+    padding: 36px 44px;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(56, 170, 241, 0.2);
+    border-radius: 20px;
+    margin: 0 24px;
+    animation: cardReveal 1.2s 0.8s ease-out both;
+    box-shadow:
+      0 0 60px rgba(25, 39, 125, 0.3),
+      inset 0 0 30px rgba(56, 170, 241, 0.03);
+  }
+  @keyframes cardReveal {
+    0% { opacity: 0; transform: translateY(40px) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .review-card::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 40px;
+    right: 40px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #38AAF1, #19B929, transparent);
+    border-radius: 2px;
+  }
+
+  /* Five stars */
+  .stars-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    justify-content: center;
+  }
+  .star-icon {
+    width: 28px;
+    height: 28px;
+    animation: starPop 0.4s ease-out both;
+  }
+  .star-icon:nth-child(1) { animation-delay: 1.2s; }
+  .star-icon:nth-child(2) { animation-delay: 1.35s; }
+  .star-icon:nth-child(3) { animation-delay: 1.5s; }
+  .star-icon:nth-child(4) { animation-delay: 1.65s; }
+  .star-icon:nth-child(5) { animation-delay: 1.8s; }
+  @keyframes starPop {
+    0% { opacity: 0; transform: scale(0) rotate(-30deg); }
+    60% { transform: scale(1.3) rotate(5deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+
+  .review-text {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 300;
+    font-size: clamp(0.95rem, 1.8vw, 1.2rem);
+    line-height: 1.7;
+    color: rgba(240, 241, 249, 0.85);
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .review-text .highlight {
+    color: #19B929;
+    font-weight: 600;
+  }
+  .review-text .highlight-blue {
+    color: #38AAF1;
+    font-weight: 600;
+  }
+
+  .review-source {
+    text-align: center;
+    font-family: 'Rubik', sans-serif;
+  }
+  .review-author {
+    font-weight: 600;
+    font-size: 1rem;
+    color: rgba(240, 241, 249, 0.9);
+  }
+  .review-company {
+    font-weight: 400;
+    font-size: 0.85rem;
+    color: rgba(56, 170, 241, 0.8);
+    letter-spacing: 0.05em;
+  }
+  .review-badge {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 4px 14px;
+    background: rgba(25, 185, 41, 0.15);
+    border: 1px solid rgba(25, 185, 41, 0.3);
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #19B929;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Floating achievement pills */
+  .pill {
+    position: absolute;
+    z-index: 5;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(56, 170, 241, 0.12);
+    border-radius: 30px;
+    padding: 10px 20px;
+    color: rgba(240, 241, 249, 0.6);
+    font-size: 0.78rem;
+    font-weight: 400;
+    white-space: nowrap;
+    animation: pillFloat var(--dur) ease-in-out infinite alternate, fadeIn 1.5s var(--delay) ease-out both;
+    pointer-events: none;
+  }
+  .pill .emoji { margin-right: 6px; }
+  @keyframes pillFloat {
+    0% { transform: translateY(0) rotate(var(--r1)); }
+    100% { transform: translateY(var(--dy)) rotate(var(--r2)); }
+  }
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  /* Confetti */
+  .confetti {
+    position: absolute;
+    border-radius: 2px;
+    animation: confettiFall var(--dur) linear infinite;
+    opacity: 0;
+  }
+  @keyframes confettiFall {
+    0% { opacity: 0; transform: translateY(-20vh) rotate(0deg); }
+    10% { opacity: 0.7; }
+    90% { opacity: 0.5; }
+    100% { opacity: 0; transform: translateY(110vh) rotate(720deg); }
+  }
+
+  /* Sparkles */
+  .sparkle {
+    position: absolute;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    animation: sparkleAnim var(--dur) ease-in-out infinite;
+  }
+  @keyframes sparkleAnim {
+    0%, 100% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(1.8); }
+  }
+
+  /* Rings */
+  .ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 1px solid;
+    animation: ringPulse var(--dur) ease-out infinite;
+    pointer-events: none;
+  }
+  @keyframes ringPulse {
+    0% { width: 80px; height: 80px; opacity: 0.4; }
+    100% { width: var(--size); height: var(--size); opacity: 0; }
+  }
+
+  .bottom-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #19277D, #38AAF1, #19B929);
+    z-index: 20;
+  }
+</style>
+</head>
+<body>
+
+<div class="scene">
+  <div class="mesh"></div>
+  <div class="stars" id="stars"></div>
+  <div class="header"></div>
+
+  <div class="logo-wrap">
+    <img src="data:image/png;base64,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" alt="Sprinterra" />
+  </div>
+
+  <!-- Achievement pills -->
+  <div class="pill" style="top: 15%; left: 5%; --dur: 5s; --delay: 2s; --dy: -10px; --r1: -0.5deg; --r2: 0.5deg;">
+    <span class="emoji">🎯</span> Re-scoped and delivered
+  </div>
+  <div class="pill" style="top: 82%; left: 4%; --dur: 6s; --delay: 2.4s; --dy: -8px; --r1: 0.5deg; --r2: -0.5deg;">
+    <span class="emoji">📋</span> Deep discovery, tight outline
+  </div>
+  <div class="pill" style="top: 17%; right: 4%; --dur: 5.5s; --delay: 2.8s; --dy: -12px; --r1: 0deg; --r2: 1deg;">
+    <span class="emoji">🚀</span> On time, minimal revisions
+  </div>
+  <div class="pill" style="top: 80%; right: 3%; --dur: 6.5s; --delay: 3.2s; --dy: -10px; --r1: -1deg; --r2: 0deg;">
+    <span class="emoji">🏆</span> Client moving ALL dev to Sprinterra
+  </div>
+
+  <div class="fm-title">
+    <div class="fm-eyebrow">Every Friday at Sprinterra</div>
+    <h1 class="fm-heading">FRIDAY<span>MAGIC</span></h1>
+  </div>
+
+  <div class="review-card">
+    <div class="stars-row">
+      <svg class="star-icon" viewBox="0 0 24 24" fill="#fbbf24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <svg class="star-icon" viewBox="0 0 24 24" fill="#fbbf24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <svg class="star-icon" viewBox="0 0 24 24" fill="#fbbf24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <svg class="star-icon" viewBox="0 0 24 24" fill="#fbbf24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <svg class="star-icon" viewBox="0 0 24 24" fill="#fbbf24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    </div>
+
+    <p class="review-text">
+      Sprinterra was brought into a <span class="highlight-blue">critical dev situation</span> where the previous dev team was over budget and failing on scope. Sprinterra excelled at <span class="highlight">re-scoping</span>, ensuring there was a deep discovery doc and dev outline. The scope was <span class="highlight">delivered on time</span> with minimal revisions, and now the client is <span class="highlight">moving all dev work to Sprinterra</span>. No better compliment than future work and a happy client. <span class="highlight-blue">Fantastic team and delivered product.</span>
+    </p>
+
+    <div class="review-source">
+      <div class="review-author">Jeremy</div>
+      <div class="review-company">Premier Tech</div>
+      <div class="review-badge">Acumatica Marketplace Review</div>
+    </div>
+  </div>
+
+  <div id="sparkles"></div>
+  <div id="confetti"></div>
+  <div id="rings"></div>
+
+  <div class="bottom-bar"></div>
+</div>
+
+<script>
+  const starsEl = document.getElementById('stars');
+  for (let i = 0; i < 60; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    star.style.left = Math.random() * 100 + '%';
+    star.style.top = Math.random() * 100 + '%';
+    star.style.setProperty('--dur', (1.5 + Math.random() * 3) + 's');
+    star.style.animationDelay = (Math.random() * 3) + 's';
+    star.style.width = star.style.height = (1 + Math.random() * 2) + 'px';
+    starsEl.appendChild(star);
+  }
+
+  const confettiEl = document.getElementById('confetti');
+  const brandColors = ['#19277D', '#38AAF1', '#19B929', '#0159C2', '#28A9A2', '#0189E8', '#fbbf24'];
+  for (let i = 0; i < 25; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = (5 + Math.random() * 90) + '%';
+    c.style.background = brandColors[Math.floor(Math.random() * brandColors.length)];
+    c.style.setProperty('--dur', (5 + Math.random() * 7) + 's');
+    c.style.animationDelay = (Math.random() * 10) + 's';
+    c.style.width = (4 + Math.random() * 8) + 'px';
+    c.style.height = (4 + Math.random() * 8) + 'px';
+    c.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    confettiEl.appendChild(c);
+  }
+
+  const sparklesEl = document.getElementById('sparkles');
+  for (let i = 0; i < 12; i++) {
+    const sp = document.createElement('div');
+    sp.className = 'sparkle';
+    sp.style.left = (20 + (Math.random() - 0.5) * 60) + '%';
+    sp.style.top = (35 + (Math.random() - 0.5) * 30) + '%';
+    sp.style.setProperty('--dur', (2 + Math.random() * 3) + 's');
+    sp.style.animationDelay = (Math.random() * 4) + 's';
+    sp.style.background = brandColors[Math.floor(Math.random() * brandColors.length)];
+    sp.style.boxShadow = '0 0 8px ' + sp.style.background;
+    sparklesEl.appendChild(sp);
+  }
+
+  const ringsEl = document.getElementById('rings');
+  for (let i = 0; i < 3; i++) {
+    const ring = document.createElement('div');
+    ring.className = 'ring';
+    ring.style.borderColor = i === 0 ? 'rgba(56,170,241,0.25)' : i === 1 ? 'rgba(25,185,41,0.15)' : 'rgba(25,39,125,0.2)';
+    ring.style.setProperty('--dur', (3 + i * 1.5) + 's');
+    ring.style.setProperty('--size', (400 + i * 200) + 'px');
+    ring.style.animationDelay = (i * 1.2) + 's';
+    ringsEl.appendChild(ring);
+  }
+</script>
+
+</body>
+</html>
